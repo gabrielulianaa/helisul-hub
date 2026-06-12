@@ -94,13 +94,6 @@ export default function Acesso() {
           <AcessoForm />
         </Suspense>
 
-        <div style={{ borderTop: '1px solid var(--line)', paddingTop: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.09em', color: 'var(--ink-3)', fontWeight: 700 }}>
-            Projeto executado por
-          </span>
-          <Image src="/polijunior-logo.png" alt="Poli Júnior" width={90} height={26}
-            style={{ borderRadius: 5 }} />
-        </div>
       </div>
     </div>
   )
