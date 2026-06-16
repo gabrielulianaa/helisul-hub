@@ -36,7 +36,10 @@ function AtaForm({ ata, onClose, onSave, onDelete }) {
 
 export default function Atas({ atas, onAdd, onUpdate, onDelete }) {
   const [editing, setEditing] = useState(null)
-  const ordered = [...atas].sort((a, b) => (a.data < b.data ? 1 : -1))
+  const [sortDesc, setSortDesc] = useState(true)
+  const ordered = [...atas].sort((a, b) =>
+    sortDesc ? (a.data < b.data ? 1 : -1) : (a.data > b.data ? 1 : -1)
+  )
 
   async function save(ata) {
     const isNew = !atas.some(a => a.id === ata.id)
@@ -74,9 +77,25 @@ export default function Atas({ atas, onAdd, onUpdate, onDelete }) {
           <h2 className="view-title">Atas de reunião</h2>
           <p className="view-sub">{atas.length} ata{atas.length !== 1 ? 's' : ''} registrada{atas.length !== 1 ? 's' : ''} · clique no card para abrir no Google Docs.</p>
         </div>
-        <button className="btn-primary" onClick={() => setEditing({})}>
-          <IcPlus /> Nova ata
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="btn-ghost"
+            onClick={() => setSortDesc(p => !p)}
+            title={sortDesc ? 'Mostrar mais antigas primeiro' : 'Mostrar mais recentes primeiro'}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {sortDesc
+                ? <><path d="M3 8l4-4 4 4"/><path d="M7 4v16"/><path d="M21 12H11"/><path d="M21 6H15"/><path d="M21 18H15"/></>
+                : <><path d="M3 16l4 4 4-4"/><path d="M7 20V4"/><path d="M21 12H11"/><path d="M21 6H15"/><path d="M21 18H15"/></>
+              }
+            </svg>
+            {sortDesc ? 'Mais recentes' : 'Mais antigas'}
+          </button>
+          <button className="btn-primary" onClick={() => setEditing({})}>
+            <IcPlus /> Nova ata
+          </button>
+        </div>
       </div>
 
       {ordered.length === 0 && (
