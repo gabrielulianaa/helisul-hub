@@ -7,6 +7,21 @@ import { IcEdit, IcTrash, IcExt, IcPlus } from './ui/Icons'
 
 function uid() { return Math.random().toString(36).slice(2, 9) }
 
+function DragHandle() {
+  return (
+    <span className="drag-handle" title="Arrastar para reordenar">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+        <circle cx="4"  cy="3"  r="1.3"/>
+        <circle cx="10" cy="3"  r="1.3"/>
+        <circle cx="4"  cy="7"  r="1.3"/>
+        <circle cx="10" cy="7"  r="1.3"/>
+        <circle cx="4"  cy="11" r="1.3"/>
+        <circle cx="10" cy="11" r="1.3"/>
+      </svg>
+    </span>
+  )
+}
+
 function AtaForm({ ata, onClose, onSave, onDelete }) {
   const isNew = !ata.id
   const [f, setF] = useState({
@@ -34,19 +49,20 @@ function AtaForm({ ata, onClose, onSave, onDelete }) {
   )
 }
 
-export default function Atas({ atas, onAdd, onUpdate, onDelete }) {
-  const [editing, setEditing] = useState(null)
-  const [sortDesc, setSortDesc] = useState(true)
-  const ordered = [...atas].sort((a, b) =>
-    sortDesc ? (a.data < b.data ? 1 : -1) : (a.data > b.data ? 1 : -1)
-  )
+export default function Atas({ atas, onAdd, onUpdate, onDelete, onReorder }) {
+  const [editing, setEditing]     = useState(null)
+  const [dragId, setDragId]       = useState(null)
+  const [dragOverId, setDragOverId] = useState(null)
+
+  const ordered = [...atas].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
 
   async function save(ata) {
     const isNew = !atas.some(a => a.id === ata.id)
     if (isNew) {
+      const maxPos = atas.length > 0 ? Math.max(...atas.map(a => a.position ?? 0)) : 0
       const { data, error } = await supabase
         .from('atas')
-        .insert({ titulo: ata.titulo, data: ata.data, tags: ata.tags, url: ata.url })
+        .insert({ titulo: ata.titulo, data: ata.data, tags: ata.tags, url: ata.url, position: maxPos + 1 })
         .select()
         .single()
       if (!error) onAdd(data)
@@ -70,6 +86,38 @@ export default function Atas({ atas, onAdd, onUpdate, onDelete }) {
     if (hasLink(a.url)) window.open(a.url, '_blank', 'noopener')
   }
 
+  // ── drag handlers ──────────────────────────────────────────────
+  function handleDragStart(e, id) {
+    setDragId(id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  function handleDragOver(e, id) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (id !== dragId) setDragOverId(id)
+  }
+
+  function handleDrop(e, targetId) {
+    e.preventDefault()
+    if (!dragId || dragId === targetId) { resetDrag(); return }
+
+    const from = ordered.findIndex(a => a.id === dragId)
+    const to   = ordered.findIndex(a => a.id === targetId)
+    const next = [...ordered]
+    const [item] = next.splice(from, 1)
+    next.splice(to, 0, item)
+
+    const updated = next.map((a, i) => ({ ...a, position: i + 1 }))
+    onReorder(updated)
+    Promise.all(updated.map((a, i) =>
+      supabase.from('atas').update({ position: i + 1 }).eq('id', a.id)
+    ))
+    resetDrag()
+  }
+
+  function resetDrag() { setDragId(null); setDragOverId(null) }
+
   return (
     <div className="view">
       <div className="view-head-row">
@@ -77,25 +125,9 @@ export default function Atas({ atas, onAdd, onUpdate, onDelete }) {
           <h2 className="view-title">Atas de reunião</h2>
           <p className="view-sub">{atas.length} ata{atas.length !== 1 ? 's' : ''} registrada{atas.length !== 1 ? 's' : ''} · clique no card para abrir no Google Docs.</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            className="btn-ghost"
-            onClick={() => setSortDesc(p => !p)}
-            title={sortDesc ? 'Mostrar mais antigas primeiro' : 'Mostrar mais recentes primeiro'}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {sortDesc
-                ? <><path d="M3 8l4-4 4 4"/><path d="M7 4v16"/><path d="M21 12H11"/><path d="M21 6H15"/><path d="M21 18H15"/></>
-                : <><path d="M3 16l4 4 4-4"/><path d="M7 20V4"/><path d="M21 12H11"/><path d="M21 6H15"/><path d="M21 18H15"/></>
-              }
-            </svg>
-            {sortDesc ? 'Mais recentes' : 'Mais antigas'}
-          </button>
-          <button className="btn-primary" onClick={() => setEditing({})}>
-            <IcPlus /> Nova ata
-          </button>
-        </div>
+        <button className="btn-primary" onClick={() => setEditing({})}>
+          <IcPlus /> Nova ata
+        </button>
       </div>
 
       {ordered.length === 0 && (
@@ -105,10 +137,25 @@ export default function Atas({ atas, onAdd, onUpdate, onDelete }) {
       <div className="ata-list">
         {ordered.map(a => {
           const d = new Date(a.data + 'T00:00:00')
+          const isDragging = a.id === dragId
+          const isOver     = a.id === dragOverId
           return (
-            <article key={a.id}
-              className={'ata-card' + (hasLink(a.url) ? ' ata-card--link' : '')}
-              onClick={() => openLink(a)}>
+            <article
+              key={a.id}
+              draggable
+              onDragStart={e => handleDragStart(e, a.id)}
+              onDragOver={e  => handleDragOver(e, a.id)}
+              onDrop={e      => handleDrop(e, a.id)}
+              onDragEnd={resetDrag}
+              className={
+                'ata-card' +
+                (hasLink(a.url) ? ' ata-card--link' : '') +
+                (isDragging ? ' ata-card--dragging' : '') +
+                (isOver && !isDragging ? ' ata-card--drag-over' : '')
+              }
+              onClick={() => openLink(a)}
+            >
+              <DragHandle />
               <div className="ata-date">
                 <span className="ata-date-dia">{d.getDate()}</span>
                 <span className="ata-date-mes">{MES_UP[d.getMonth()]}</span>

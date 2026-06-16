@@ -31,7 +31,7 @@ export default function Home() {
     async function load() {
       const [{ data: atasData }, { data: tasksData }, { data: prdData }, { data: fluxoData }] =
         await Promise.all([
-          supabase.from('atas').select('*').order('data', { ascending: false }),
+          supabase.from('atas').select('*').order('position', { ascending: true }),
           supabase.from('kanban_tasks').select('*').order('created_at'),
           supabase.from('prd').select('*').limit(1).single(),
           supabase.from('fluxo').select('*').limit(1).single(),
@@ -109,9 +109,10 @@ export default function Home() {
           {page === 'atas' && (
             <Atas
               atas={atas}
-              onAdd={a  => setAtas(prev => [a, ...prev])}
-              onUpdate={a  => setAtas(prev => prev.map(x => x.id === a.id ? a : x))}
-              onDelete={id => setAtas(prev => prev.filter(x => x.id !== id))}
+              onAdd={a       => setAtas(prev => [...prev, a])}
+              onUpdate={a    => setAtas(prev => prev.map(x => x.id === a.id ? a : x))}
+              onDelete={id   => setAtas(prev => prev.filter(x => x.id !== id))}
+              onReorder={setAtas}
             />
           )}
           {page === 'prd' && (

@@ -141,6 +141,11 @@ a { text-decoration: none }
 .card-tools { display: flex; align-items: center; gap: 4px; align-self: center; flex-shrink: 0; opacity: 0; transition: opacity .15s }
 .ata-card:hover .card-tools,
 .ata-card:focus-within .card-tools { opacity: 1 }
+.drag-handle { opacity: 0; color: var(--ink-3); cursor: grab; flex-shrink: 0; display: grid; place-items: center; padding: 2px; border-radius: 6px; transition: opacity .15s }
+.ata-card:hover .drag-handle { opacity: 1 }
+.drag-handle:hover { color: var(--accent) }
+.ata-card--dragging { opacity: 0.35; box-shadow: none !important; transform: none !important }
+.ata-card--drag-over { border-color: var(--accent) !important; background: color-mix(in srgb,var(--accent) 6%,var(--card)) }
 .tool-btn { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; color: var(--ink-3); border: 1px solid transparent; transition: background .14s,color .14s,border-color .14s; text-decoration: none }
 .tool-btn:hover { background: var(--bg); color: var(--accent); border-color: var(--line) }
 .tool-btn--danger:hover { background: #FDECEA; color: #C0392B; border-color: #F3C6BE }
