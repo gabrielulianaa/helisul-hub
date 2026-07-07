@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { fmtData, hasLink } from '@/lib/constants'
 import { FormModal, TextField, TextArea, TagField } from './ui/FormModal'
 import { IcEdit, IcExt, IcDoc } from './ui/Icons'
@@ -35,9 +34,11 @@ export default function PRDView({ prd, onUpdate }) {
   const [editing, setEditing] = useState(false)
 
   async function save(updated) {
-    const { error } = await supabase
-      .from('prd')
-      .update({
+    const res = await fetch('/api/prd', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: prd.id,
         titulo: updated.titulo,
         resumo: updated.resumo,
         secoes: updated.secoes,
@@ -45,9 +46,9 @@ export default function PRDView({ prd, onUpdate }) {
         versao: updated.versao,
         atualizado: updated.atualizado,
         updated_at: new Date().toISOString(),
-      })
-      .eq('id', prd.id)
-    if (!error) onUpdate(updated)
+      }),
+    })
+    if (res.ok) onUpdate(updated)
     setEditing(false)
   }
 

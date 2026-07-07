@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { KANBAN_COLS, MEMBERS, PRIO } from '@/lib/constants'
 import { FormModal, TextField, SelectField } from './ui/FormModal'
 import { IcEdit, IcTrash, IcPlus, IcCal } from './ui/Icons'
@@ -89,8 +88,12 @@ export default function Kanban({ tasks, onAdd, onUpdate, onDelete, onMove }) {
 
   async function onDrop(colId) {
     if (drag && drag.col !== colId) {
-      const { error } = await supabase.from('kanban_tasks').update({ col: colId }).eq('id', drag.id)
-      if (!error) onMove(drag.id, colId)
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: drag.id, col: colId }),
+      })
+      if (res.ok) onMove(drag.id, colId)
     }
     setDrag(null); setOver(null)
   }
@@ -98,25 +101,30 @@ export default function Kanban({ tasks, onAdd, onUpdate, onDelete, onMove }) {
   async function save(task) {
     const isNew = !tasks.some(t => t.id === task.id)
     if (isNew) {
-      const { data, error } = await supabase
-        .from('kanban_tasks')
-        .insert({ titulo: task.titulo, col: task.col, resp: task.resp, prazo: task.prazo, prioridade: task.prioridade })
-        .select()
-        .single()
-      if (!error) onAdd(data)
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task),
+      })
+      if (res.ok) onAdd(await res.json())
     } else {
-      const { error } = await supabase
-        .from('kanban_tasks')
-        .update({ titulo: task.titulo, col: task.col, resp: task.resp, prazo: task.prazo, prioridade: task.prioridade })
-        .eq('id', task.id)
-      if (!error) onUpdate(task)
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task),
+      })
+      if (res.ok) onUpdate(task)
     }
     setEditing(null)
   }
 
   async function remove(id) {
-    const { error } = await supabase.from('kanban_tasks').delete().eq('id', id)
-    if (!error) onDelete(id)
+    const res = await fetch('/api/tasks', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    if (res.ok) onDelete(id)
     setEditing(null)
   }
 

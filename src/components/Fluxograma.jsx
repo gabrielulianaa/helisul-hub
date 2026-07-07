@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { hasLink } from '@/lib/constants'
 import { FormModal, TextField, TextArea } from './ui/FormModal'
 import { IcEdit, IcExt } from './ui/Icons'
@@ -26,16 +25,18 @@ export default function Fluxograma({ fluxo, onUpdate }) {
   const [editing, setEditing] = useState(false)
 
   async function save(updated) {
-    const { error } = await supabase
-      .from('fluxo')
-      .update({
+    const res = await fetch('/api/fluxo', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: fluxo.id,
         titulo: updated.titulo,
         descricao: updated.descricao,
         url: updated.url || '',
         updated_at: new Date().toISOString(),
-      })
-      .eq('id', fluxo.id)
-    if (!error) onUpdate(updated)
+      }),
+    })
+    if (res.ok) onUpdate(updated)
     setEditing(false)
   }
 

@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { MES_UP, hasLink } from '@/lib/constants'
 import { FormModal, TextField, TagField } from './ui/FormModal'
 import { IcEdit, IcTrash, IcExt, IcPlus } from './ui/Icons'
@@ -50,8 +49,8 @@ function AtaForm({ ata, onClose, onSave, onDelete }) {
 }
 
 export default function Atas({ atas, onAdd, onUpdate, onDelete, onReorder }) {
-  const [editing, setEditing]     = useState(null)
-  const [dragId, setDragId]       = useState(null)
+  const [editing, setEditing]       = useState(null)
+  const [dragId, setDragId]         = useState(null)
   const [dragOverId, setDragOverId] = useState(null)
 
   const ordered = [...atas].sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
@@ -60,25 +59,30 @@ export default function Atas({ atas, onAdd, onUpdate, onDelete, onReorder }) {
     const isNew = !atas.some(a => a.id === ata.id)
     if (isNew) {
       const maxPos = atas.length > 0 ? Math.max(...atas.map(a => a.position ?? 0)) : 0
-      const { data, error } = await supabase
-        .from('atas')
-        .insert({ titulo: ata.titulo, data: ata.data, tags: ata.tags, url: ata.url, position: maxPos + 1 })
-        .select()
-        .single()
-      if (!error) onAdd(data)
+      const res = await fetch('/api/atas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...ata, position: maxPos + 1 }),
+      })
+      if (res.ok) onAdd(await res.json())
     } else {
-      const { error } = await supabase
-        .from('atas')
-        .update({ titulo: ata.titulo, data: ata.data, tags: ata.tags, url: ata.url })
-        .eq('id', ata.id)
-      if (!error) onUpdate(ata)
+      const res = await fetch('/api/atas', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ata),
+      })
+      if (res.ok) onUpdate(ata)
     }
     setEditing(null)
   }
 
   async function remove(id) {
-    const { error } = await supabase.from('atas').delete().eq('id', id)
-    if (!error) onDelete(id)
+    const res = await fetch('/api/atas', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    if (res.ok) onDelete(id)
     setEditing(null)
   }
 
@@ -111,7 +115,11 @@ export default function Atas({ atas, onAdd, onUpdate, onDelete, onReorder }) {
     const updated = next.map((a, i) => ({ ...a, position: i + 1 }))
     onReorder(updated)
     Promise.all(updated.map((a, i) =>
-      supabase.from('atas').update({ position: i + 1 }).eq('id', a.id)
+      fetch('/api/atas', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: a.id, position: i + 1 }),
+      })
     ))
     resetDrag()
   }
